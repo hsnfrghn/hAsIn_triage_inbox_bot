@@ -1,0 +1,15 @@
+{
+  "name": "@inbox/proto",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "lint": "buf lint",
+    "generate": "buf generate",
+    "breaking": "buf breaking --against ../../.git#branch=main,subdir=packages/proto",
+    "format": "buf format -w"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.73.0",
+    "ts-proto": "^2.12.4"
+  }
+}

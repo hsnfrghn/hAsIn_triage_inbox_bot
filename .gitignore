@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.turbo/
+packages/proto/gen/
+apps/ai-service/src/gen/
+.venv/
+*.log
+.env
+.idea/

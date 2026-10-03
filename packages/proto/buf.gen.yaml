@@ -1,0 +1,12 @@
+# packages/proto/buf.gen.yaml
+version: v2
+clean: true
+plugins:
+  # TypeScript for gateway + worker
+  - local: protoc-gen-ts_proto
+    out: gen/ts
+    opt:
+      - nestJs=true
+      - addGrpcMetadata=true
+      - esModuleInterop=true
+

@@ -1,0 +1,83 @@
+syntax = "proto3";
+package triage.v1;
+
+service TriageService {
+  rpc GetInfo(GetInfoRequest) returns (GetInfoResponse);
+  rpc Classify(ClassifyRequest) returns (ClassifyResponse);
+  rpc DraftReply(DraftReplyRequest) returns (stream DraftReplyResponse);
+}
+
+message GetInfoRequest {}
+message GetInfoResponse {
+  string classify_prompt_version = 1;
+  string draft_prompt_version = 2;
+  string provider = 3; // "openai" | "fake"
+}
+
+message ThreadMessage {
+  enum Author {
+    AUTHOR_UNSPECIFIED = 0;
+    CUSTOMER = 1;
+    AGENT = 2;
+  }
+  Author author = 1;
+  string text = 2;
+}
+
+message ClassifyRequest {
+  string message_id = 1; // idempotency + tracing
+  string org_id = 2; // logging only, never for access
+  repeated ThreadMessage thread = 3; // ends at the message being classified
+}
+
+message ClassifyResponse {
+  enum Intent {
+    INTENT_UNSPECIFIED = 0;
+    BILLING = 1;
+    BUG = 2;
+    HOW_TO = 3;
+    CANCELLATION = 4;
+    FEEDBACK = 5;
+    OTHER = 6;
+  }
+  enum Urgency {
+    URGENCY_UNSPECIFIED = 0;
+    LOW = 1;
+    NORMAL = 2;
+    HIGH = 3;
+  }
+  Intent intent = 1;
+  Urgency urgency = 2;
+  float sentiment = 3; // -1..1
+  float confidence = 4; // 0..1, model self-reported
+  string prompt_version = 5;
+  Usage usage = 6;
+  bool needs_human = 7; // model output was unusable; intent/urgency left UNSPECIFIED on purpose
+}
+
+message DraftReplyRequest {
+  string conversation_id = 1;
+  string org_id = 2; // logging only
+  repeated ThreadMessage thread = 3;
+  string org_guidelines = 4; // tone, policies, sign-off
+}
+
+message DraftReplyResponse { // one chunk of the DraftReply stream
+  oneof payload { // a discriminated union, across languages
+    TokenDelta delta = 1;
+    DraftDone done = 2;
+  }
+}
+message TokenDelta {
+  string text = 1;
+}
+message DraftDone {
+  string prompt_version = 1;
+  Usage usage = 2;
+  string finish_reason = 3;
+}
+message Usage {
+  uint32 input_tokens = 1;
+  uint32 output_tokens = 2;
+  uint32 latency_ms = 3;
+}
