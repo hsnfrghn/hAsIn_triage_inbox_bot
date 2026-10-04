@@ -9,11 +9,14 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "grpcio>=1.84.0",
+    "openai>=3.24.0",
     "protobuf>=7.36.2",
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
 ]
 
 [project.scripts]
-ai-service = "ai_service:main"
+ai-service = "ai_service.__main__:main"
 
 [build-system]
 requires = ["uv_build>=0.12.19,<0.13.0"]
@@ -22,4 +25,22 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "grpcio-tools>=1.84.0",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.10",
+    "types-grpcio>=1.84.0.20260928",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"          # async tests don't need a decorator each
+
+[tool.ruff]
+extend-exclude = ["src/ai_service/gen"]
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "ai_service.gen.*"
+ignore_errors = true            # generated code: we type-check how it's used, not its internals

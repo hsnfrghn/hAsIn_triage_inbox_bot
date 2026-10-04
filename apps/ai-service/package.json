@@ -1,9 +1,11 @@
 {
   "name": "@inbox/ai-service",
   "private": true,
-  "dependencies": { "@inbox/proto": "workspace:*" },
+  "dependencies": {
+    "@inbox/proto": "workspace:*"
+  },
   "scripts": {
-    "generate": "rm -rf src/gen && mkdir -p src/gen && uv run python -m grpc_tools.protoc -I ../../packages/proto --python_out=src/gen --pyi_out=src/gen --grpc_python_out=src/gen ../../packages/proto/triage/v1/triage.proto"
+    "generate": "rm -rf src/ai_service/gen && uv run python -m grpc_tools.protoc -Iai_service/gen=../../packages/proto --python_out=src --pyi_out=src --grpc_python_out=src ai_service/gen/triage/v1/triage.proto"
   }
 }
 
