@@ -176,7 +176,9 @@ Some things in that file that are doing real work:
 
 **Codegen** from this one file:
 - `buf generate` runs **ts-proto** (with `nestJs=true`, `addGrpcMetadata=true`) → `packages/proto/gen/ts`, exported as `@inbox/proto`
-- the ai-service's own `generate` script runs **grpcio-tools** (`python -m grpc_tools.protoc` with `--python_out`, `--pyi_out`, `--grpc_python_out`) → `apps/ai-service/src/gen`. The generated servicer works with `grpc.aio`.
+- the ai-service's own `generate` script runs **grpcio-tools** (`python -m grpc_tools.protoc` with `--python_out`, `--pyi_out`, `--grpc_python_out`) → `apps/ai-service/src/ai_service/gen`. The generated servicer works with `grpc.aio`.
+
+The generated Python imports its siblings by the proto's file path (`from triage.v1 import triage_pb2`), which only resolves if that path is importable. The script uses protoc's virtual-path form, `-Iai_service/gen=../../packages/proto`, so the proto is compiled *as if* it lived at `ai_service/gen/triage/v1/triage.proto`. The output then lands inside the package and imports as `from ai_service.gen.triage.v1 import triage_pb2`, so `uv run`, pytest and mypy need no path configuration. The only side effect is the descriptor's file name. The wire path (`/triage.v1.TriageService/...`) comes from the proto package and service name, so it doesn't change.
 
 Why Python doesn't go through buf: buf's Python plugins are remote (they run on buf.build), and buf.build is unreachable from this network. grpcio-tools bundles the compiler and the gRPC plugin, and it's pinned in `uv.lock` next to the `grpcio`/`protobuf` runtime, so the generator and the runtime can't drift apart. Each package also writes only into its own folder, which keeps Turborepo's caching honest. `buf lint` and `buf breaking` still cover the contract, and both run locally.
 
@@ -191,10 +193,10 @@ This is the path worth the most care. Tokens go Python → gRPC stream → NestJ
 ### Python side
 
 ```python
-# apps/ai-service/src/servicer.py
+# apps/ai-service/src/ai_service/servicer.py
 class TriageServicer(pb_grpc.TriageServiceServicer):
     async def DraftReply(self, request, context):
-        prompt = prompts.draft.build(request)          # versioned + PII-redacted, see §6
+        prompt = draft.build(request)                  # versioned + PII-redacted, see §6
         started = time.monotonic()
         try:
             async with self.llm.stream(prompt) as stream:   # closes the HTTP stream on exit
@@ -202,7 +204,7 @@ class TriageServicer(pb_grpc.TriageServiceServicer):
                     yield pb.DraftReplyResponse(delta=pb.TokenDelta(text=text))
                 usage = stream.usage()
             yield pb.DraftReplyResponse(done=pb.DraftDone(
-                prompt_version=prompts.draft.VERSION,
+                prompt_version=draft.VERSION,
                 usage=to_pb_usage(usage, started),
                 finish_reason=stream.finish_reason,
             ))
@@ -515,7 +517,7 @@ Treat the model as an unreliable dependency, not a function.
 ### Provider adapter
 
 ```python
-# apps/ai-service/src/providers/base.py
+# apps/ai-service/src/ai_service/providers/base.py
 class LLMProvider(Protocol):
     def stream(self, prompt: Prompt) -> AbstractAsyncContextManager[TextStream]: ...
     async def complete_structured(self, prompt: Prompt, schema: type[BaseModel],
@@ -560,17 +562,20 @@ Defences, in layers:
 
 ### PII redaction
 
-`prompts/*.build()` runs a regex pass (emails, phone numbers, card-like digit runs) over customer text before it reaches the provider, controlled by `PII_REDACTION=on|off`. The DB keeps the original text, and only the provider sees the redacted version. Because redaction lives in Python, it's applied at the one boundary that matters.
+Each task's `build()` (`classify.build()`, `draft.build()`) runs a regex pass (emails, phone numbers, card-like digit runs) over customer text before it reaches the provider, controlled by `PII_REDACTION=on|off`. The DB keeps the original text, and only the provider sees the redacted version. Because redaction lives in Python, it's applied at the one boundary that matters.
 
 ### Prompts are code
 
 ```
-apps/ai-service/prompts/
-  classify/v1.md        ← active
-  draft/v1.md           ← active
+apps/ai-service/src/ai_service/
+  prompts/
+    classify/v1.md      ← active
+    draft/v1.md         ← active
+  classify.py           ← VERSION, build(), ClassificationOut, to_pb()
+  draft.py              ← VERSION, build()
 ```
 
-The version comes from the file (or a hash of it) and is stored with every result. A prompt change is a diff you review, and it has to go through evals.
+The templates live inside the package and are loaded with `importlib.resources.files("ai_service")`, so they're found no matter which directory the service runs from, the same no-path-config reasoning as the generated code (§3). The code for each AI task lives in one module per task rather than being split by kind of file. The version comes from the file (or a hash of it) and is stored with every result. A prompt change is a diff you review, and it has to go through evals.
 
 ### Evals: how you know a change didn't make things worse
 
@@ -796,7 +801,8 @@ apps/ai-service/
   pyproject.toml     ← uv manages deps and venv
   uv.lock
   package.json       ← a thin wrapper so Turborepo can see the app
-  src/ evals/ prompts/ tests/
+  src/ai_service/    ← the package: servicer, providers, prompts/, gen/ (generated)
+  evals/ tests/
 ```
 
 ```json
@@ -805,7 +811,7 @@ apps/ai-service/
   "private": true,
   "dependencies": { "@inbox/proto": "workspace:*" },
   "scripts": {
-    "dev":   "uv run python -m src.main",
+    "dev":   "uv run python -m ai_service",
     "test":  "uv run pytest",
     "lint":  "uv run ruff check . && uv run mypy src",
     "evals": "uv run python -m evals.run_evals"

@@ -3,18 +3,28 @@
   "tasks": {
     "generate": {
       "cache": false,
-      "outputs": ["gen/**", "src/gen/**"]
+      "outputs": [
+        "gen/**",
+        "src/ai_service/gen/**"
+      ]
     },
     "build": {
-      "dependsOn": ["^build", "generate"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "^build",
+        "generate"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "test": {
-      "dependsOn": ["generate"]
+      "dependsOn": [
+        "generate"
+      ]
     },
     "lint": {}
   }

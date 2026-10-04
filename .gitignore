@@ -2,8 +2,12 @@ node_modules/
 dist/
 .turbo/
 packages/proto/gen/
-apps/ai-service/src/gen/
+apps/ai-service/src/ai_service/gen/
 .venv/
+.idea/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 *.log
 .env
-.idea/

@@ -41,7 +41,7 @@ Run from the repo root unless noted.
 
 - **Install:** `pnpm i`. Python deps are managed by uv in `apps/ai-service`, and `uv run` syncs them on demand (`uv sync` to do it explicitly).
 - **Infra:** `pnpm infra:up` starts Postgres, Redpanda, GreenMail and Jaeger and waits until healthy. `pnpm infra:down` stops them and keeps data (`docker compose -f infra/docker-compose.yml down -v` wipes it). Redpanda Console is optional: add `--profile tools` to `up`.
-- **Codegen:** `pnpm generate`. buf runs ts-proto into `packages/proto/gen/ts`, and grpcio-tools writes `apps/ai-service/src/gen`. Re-run after every `.proto` change.
+- **Codegen:** `pnpm generate`. buf runs ts-proto into `packages/proto/gen/ts`, and grpcio-tools writes `apps/ai-service/src/ai_service/gen` (imported as `ai_service.gen.triage.v1`, via protoc's `-Iai_service/gen=...` virtual path). Re-run after every `.proto` change.
 - **Proto:** `pnpm --filter @inbox/proto lint`, `pnpm --filter @inbox/proto format`, `pnpm proto:breaking` (compares with `main`).
 - **One package:** `pnpm --filter <package-name> <script>`.
 - **Not set up yet** (add them when their milestone does): dev, test (all, one package, one test), lint, evals (M7), db migrate/seed (M3).
