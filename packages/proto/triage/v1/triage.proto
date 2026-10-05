@@ -48,6 +48,7 @@ message ClassifyResponse {
   }
   Intent intent = 1;
   Urgency urgency = 2;
+// sentiment and confidence are meaningless when needs_human is true (they read as 0).
   float sentiment = 3; // -1..1
   float confidence = 4; // 0..1, model self-reported
   string prompt_version = 5;
