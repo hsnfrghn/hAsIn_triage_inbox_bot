@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI Triage Inbox is a local support inbox that the user is building to learn **AI engineering and NestJS**. Customer emails arrive over IMAP and an AI classifies them in the background. Agents request reply drafts, which stream in token by token, then review them and send over SMTP. **`PLAN.md` is the source of truth** for the design, the decisions and their reasons, and the milestones (M0–M8). Read it before suggesting anything architectural.
 
-Status: M0 (skeleton) is done. The pnpm/Turborepo workspace, the proto contract with codegen for both languages, and the compose infra all work. Next is M1.
+Status: M0 is done. M1 (ai-service: Classify + GetInfo) is in progress, with steps 1–3 of 9 done: codegen inside the package, tooling, and the `classify.py` output gate with its tests. Next is step 4: the `LLMProvider` protocol and the fake provider.
 
 ## Collaboration rules
 
@@ -44,6 +44,7 @@ Run from the repo root unless noted.
 - **Codegen:** `pnpm generate`. buf runs ts-proto into `packages/proto/gen/ts`, and grpcio-tools writes `apps/ai-service/src/ai_service/gen` (imported as `ai_service.gen.triage.v1`, via protoc's `-Iai_service/gen=...` virtual path). Re-run after every `.proto` change.
 - **Proto:** `pnpm --filter @inbox/proto lint`, `pnpm --filter @inbox/proto format`, `pnpm proto:breaking` (compares with `main`).
 - **One package:** `pnpm --filter <package-name> <script>`.
+- **ai-service checks** (from `apps/ai-service`): `uv run pytest -q`; a single test: `uv run pytest tests/test_classify.py::test_valid_output_is_mapped`; `uv run mypy src`; `uv run ruff check .`. They aren't wired into `pnpm test` / `pnpm lint` until the package gets those scripts (M1 step 9).
 - **Not set up yet** (add them when their milestone does): dev, test (all, one package, one test), lint, evals (M7), db migrate/seed (M3).
 
 ### Local endpoints
