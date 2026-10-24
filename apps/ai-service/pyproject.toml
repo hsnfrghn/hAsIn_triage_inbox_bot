@@ -40,6 +40,7 @@ extend-exclude = ["src/ai_service/gen"]
 
 [tool.mypy]
 strict = true
+untyped_calls_exclude = ["ai_service.gen"]   # generated gRPC module has no type hints
 
 [[tool.mypy.overrides]]
 module = "ai_service.gen.*"
