@@ -20,7 +20,7 @@ The design is organised around the decisions that make it hard. The learning foc
 | Streaming | **Coupled** to the socket, with a **5 s disconnect grace period** keyed by user. Redis Streams comes later. |
 | Classification UX | Async. The message appears straight away with a skeleton, and the classification **fills in live over WS**. |
 | Retrieval | Not in v1. It's the first item in §13. |
-| Provider | **OpenAI** behind a Python adapter interface. The **fake** provider that the tests need is the second implementation. |
+| Provider | **OpenAI** behind a Python adapter interface. The **fake** provider that the tests need is the second implementation. During development, the same OpenAI SDK adapter points at a free OpenAI-compatible endpoint (**Groq**, `openai/gpt-oss-20b`) through `OPENAI_BASE_URL`. |
 | PII | Regex redaction pass in Python before anything reaches the provider, behind `PII_REDACTION=on\|off`. |
 | Observability | **OpenTelemetry + local Jaeger** (no account needed). Trace context travels in gRPC metadata and Kafka headers. |
 | CI | None yet. Local scripts `pnpm proto:breaking` and `pnpm evals` replace it. |
@@ -524,7 +524,9 @@ class LLMProvider(Protocol):
                                   timeout: float | None) -> tuple[str, Usage]: ...
 ```
 
-`providers/openai.py` and `providers/fake.py` (scripted deltas, configurable delays and errors, and it records cancellations for the E2E test) are selected by `AI_PROVIDER`. Swapping providers is a one-file change.
+`providers/openai_provider.py` and `providers/fake.py` (scripted deltas, configurable delays and errors, and it records cancellations for the E2E test) are selected by `AI_PROVIDER`. Swapping providers is a one-file change. (The module isn't named `openai.py`, so it can't be mistaken for the SDK package it imports.)
+
+The OpenAI adapter is configured by `OPENAI_API_KEY`, `OPENAI_MODEL` and an optional `OPENAI_BASE_URL`. Development uses Groq's free tier (`OPENAI_BASE_URL=https://api.groq.com/openai/v1`, `OPENAI_MODEL=openai/gpt-oss-20b`), which speaks the same Chat Completions API and supports strict JSON-schema output. Production uses OpenAI with the base URL unset. Switching is an `.env` change, not a code change. The trade-off: dev quality numbers come from a different model than production, so the M7 evals must be rerun against the production model before any prompt decision is final.
 
 ### Structured output, and failing closed
 
@@ -885,11 +887,11 @@ Each milestone ends with a **Done when** check you can demonstrate.
 - *Done when:* `pnpm i && pnpm generate` produces TS and Python stubs, `docker compose up` is healthy, and `buf lint` passes.
 
 **M1: ai-service, Classify + GetInfo**
-- the `LLMProvider` protocol, with OpenAI and fake implementations
+- the `LLMProvider` protocol, with OpenAI and fake implementations (OpenAI SDK adapter, run against Groq's free tier in development)
 - `prompts/classify/v1.md` with untrusted-content delimiting
 - `ClassificationOut` and fail-closed `needs_human`
 - rate limit → `RESOURCE_EXHAUSTED`
-- *Done when:* pytest and in-process gRPC tests pass, and `grpcurl` against the service with the OpenAI provider returns a sensible classification for a real email.
+- *Done when:* pytest and in-process gRPC tests pass, and `grpcurl` against the service with the OpenAI provider returns a sensible classification for a real email (in development, through the Groq endpoint).
 
 **M2: ai-service, DraftReply streaming**
 - server streaming, `DraftDone` with usage, and cancellation that closes the provider stream

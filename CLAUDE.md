@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI Triage Inbox is a local support inbox that the user is building to learn **AI engineering and NestJS**. Customer emails arrive over IMAP and an AI classifies them in the background. Agents request reply drafts, which stream in token by token, then review them and send over SMTP. **`PLAN.md` is the source of truth** for the design, the decisions and their reasons, and the milestones (M0–M8). Read it before suggesting anything architectural.
 
-Status: M0 is done. M1 (ai-service: Classify + GetInfo) is in progress, with steps 1–3 of 9 done: codegen inside the package, tooling, and the `classify.py` output gate with its tests. Next is step 4: the `LLMProvider` protocol and the fake provider.
+Status: M0 is done. M1 (ai-service: Classify + GetInfo) is in progress, with steps 1–7 of 9 done: codegen inside the package, tooling, the `classify.py` output gate, the `LLMProvider` protocol with the fake provider, the classify prompt and `build()`, the servicer, and in-process gRPC tests. Next is step 8: the OpenAI SDK adapter, developed against Groq's free tier (`apps/ai-service/.env` sets `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`; it's git-ignored, so never print or commit it).
 
 ## Collaboration rules
 
