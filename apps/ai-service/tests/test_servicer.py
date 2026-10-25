@@ -205,7 +205,9 @@ async def test_provider_gets_the_callers_remaining_deadline() -> None:
 
     [timeout] = spy.timeouts
     assert timeout is not None
-    assert 4 < timeout <= 5
+    # the deadline travels as a coarse grpc-timeout header and is re-measured on the
+    # server's clock, so it can arrive a few ms above what the client asked for
+    assert 4 < timeout <= 5.1
 
 
 async def test_no_client_deadline_means_no_provider_timeout() -> None:
